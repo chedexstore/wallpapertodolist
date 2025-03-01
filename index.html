@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Desktop Organizer</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
+        /* General Styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Lora', serif; /* Lora for body text */
+            overflow: hidden;
+            color: #fff;
+background: url('background.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        /* Background image */
+        img#bgImage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Ensure the image is behind all other elements */
+            object-fit: cover; /* Ensures the image covers the entire screen */
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .draggable {
+            position: absolute;
+            cursor: move;
+        }
+
+        /* Rest of your CSS remains unchanged */
+        .calendar-container {
+            background-color: transparent !important;
+        }
+
+        .calendar-container .header {
+            font-size: 36px; /* Increased size */
+            font-weight: bold; /* Bold font */
+        }
+
+        /* Updated styles for calendar days and tasks to match */
+        .calendar-container .day,
+        .task-list li {
+            font-size: 30px; /* Increased size */
+            font-weight: bold; /* Bold font */
+            margin-bottom: 15px; /* Add spacing between tasks */
+        }
+
+        .calendar-container .week {
+            font-size: 28px; /* Increased size */
+            font-weight: bold; /* Bold font */
+        }
+
+        .calendar-container .month {
+            font-size: 72px; /* Increased size */
+            font-weight: bold; /* Bold font */
+        }
+
+        .calendar-container .year {
+            font-size: 54px; /* Increased size */
+            font-weight: bold; /* Bold font */
+        }
+
+        /* Time Display */
+        .time-container {
+            top: 10%;
+            right: 5%;
+            text-align: center;
+        }
+
+        .time {
+            font-size: 8em; /* Increased size */
+            margin: 0;
+            color: #fff; /* Time color set to white */
+            white-space: nowrap;
+        }
+
+        .date {
+            font-size: 4em; /* Increased size */
+            color: #fff; /* Date color set to white */
+            white-space: nowrap;
+        }
+
+        /* Task List Styles */
+        .task-list-container {
+            position: absolute;
+            top: 10%; /* Place the task list at the top of the page */
+            left: 20%;
+            width: 350px;
+            height: auto;
+            padding: 10px;
+            font-size: 1.5em; /* Increased size */
+            background-color: transparent;
+            color: #fff; /* Task list color set to white */
+        }
+
+        /* Updated Task Input Styles */
+        .task-input {
+            width: 100%;
+            height: auto; /* Allow the input to adjust based on content */
+            overflow: hidden; /* Prevent scrollbars in the input */
+            padding: 10px;
+            font-size: 2em; /* Increased size */
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            box-sizing: border-box;
+            outline: none;
+            resize: none; /* Prevent resizing */
+            background-color: transparent;
+            color: #fff; /* Input text color set to white */
+            border-bottom: 2px solid #ccc;
+            word-wrap: break-word; /* Allow text wrapping */
+        }
+
+        /* Placeholder Text Color */
+        .task-input::placeholder {
+            color: #fff; /* Set the placeholder text color to white */
+            opacity: 0.7; /* Optional: adjust opacity for better visibility */
+        }
+
+        /* Remove default list style for task list items */
+        .task-list li {
+            list-style: none; /* Remove the default bullet points */
+            position: relative; /* Ensure relative positioning for custom checkboxes */
+            display: flex; /* Use flexbox for better alignment */
+            align-items: center; /* Center items vertically */
+        }
+
+        /* Remove circle before checkbox */
+        .task-list li input[type="checkbox"] {
+            appearance: none; /* Remove default styling */
+            -webkit-appearance: none; /* Remove default styling for webkit browsers */
+            border: 2px solid #fff; /* Custom border for checkbox */
+            width: 20px; /* Size of the checkbox */
+            height: 20px; /* Size of the checkbox */
+            outline: none; /* Remove outline */
+            cursor: pointer; /* Change cursor to pointer */
+            margin-right: 10px; /* Space between checkbox and task content */
+        }
+
+        /* Custom checkbox checked state */
+        .task-list li input[type="checkbox"]:checked {
+            background-color: #fff; /* Background color when checked */
+        }
+
+        /* Add styles for task content */
+        .task-content {
+            font-family: 'Bebas Neue', sans-serif; /* Font family */
+            font-size: 1.5em; /* Adjusted size */
+            line-height: 1.2; /* Adjusted line height for a slimmer look */
+            color: #fff; /* Keeping the task text color white */
+            word-wrap: break-word; /* Allows long words to wrap to the next line */
+            overflow-wrap: break-word; /* Similar to word-wrap, adds browser compatibility */
+            white-space: normal; /* Allows normal wrapping */
+            width: 100%; /* Make sure the width is set */
+        }
+
+        /* Styles for checked task content */
+        .task-content.checked {
+            text-decoration: line-through;
+            color: #666; /* Color for checked tasks */
+        }
+
+        /* Delete button styles */
+        .delete-task {
+            background: none;
+            border: none;
+            color: red;
+            font-size: 0.9em; /* Slightly increased size */
+            cursor: pointer;
+            margin-left: 5px; /* Space between task content and delete button */
+            padding: 0; /* Remove default padding */
+            line-height: 1; /* Keep the button aligned */
+        }
+
+        .calendar-picker {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* Still 7 columns */
+            text-align: center;
+            margin-top: 20px;
+            background-color: transparent;
+            border: none;
+            gap: 0;
+            width: 100%; /* Adjust the width to make it shorter, you can reduce further */
+            margin-left: auto; /* Center the calendar */
+            margin-right: auto; /* Center the calendar */
+        }
+
+        .calendar-picker div {
+            padding: 5px; /* Adjust the padding to fit the smaller width */
+            border: none;
+            background-color: transparent;
+            color: #fff;
+        }
+
+        .calendar-picker .day {
+            background-color: transparent;
+        }
+
+        .weekday {
+            font-weight: bold;
+            color: #fff; /* Weekday color set to white */
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* Month and Year Styles */
+        .month-year {
+            font-size: 3.5em; /* Increased size for month and year */
+            font-weight: bold; /* Make it bold */
+            color: #fff; /* Keep the color white */
+        }
+
+        /* Weekday Name Styles */
+        .weekday {
+            font-size: 2em; /* Increased size for weekday names */
+            font-weight: bold; /* Make it bold */
+            color: #fff; /* Keep the color white */
+        }
+
+        .nav-button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em; /* Increased size */
+            color: #fff; /* Navigation button color set to white */
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Image -->
+    <img id="bgImage" src="background.jpg" alt="Background Image">
+
+    <div class="container">
+        <div id="taskListContainer" class="draggable task-list-container" style="top: 10%; left: 20%;">
+            <textarea id="taskInput" class="task-input" placeholder="Enter task..." rows="1"></textarea>
+            <ul id="taskList" class="task-list"></ul>
+        </div>
+
+        <div id="timeContainer" class="draggable time-container">
+            <div id="timeDateGroup" class="time-date-group">
+                <div id="clock" class="time">3:53 pm</div>
+                <div id="date" class="date">Wed, Oct 02</div>
+            </div>
+        </div>
+
+        <div id="calendarContainer" class="draggable calendar-container">
+            <div class="month-nav">
+                <button id="prevMonth" class="nav-button">&#9664;</button>
+                <div id="monthYear" class="month-year"></div>
+                <button id="nextMonth" class="nav-button">&#9654;</button>
+            </div>
+            <div class="calendar-picker">
+                <div class="weekday">S</div>
+                <div class="weekday">M</div>
+                <div class="weekday">T</div>
+                <div class="weekday">W</div>
+                <div class="weekday">T</div>
+                <div class="weekday">F</div>
+                <div class="weekday">S</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(function () {
+            // Make elements draggable
+            $(".draggable").draggable({
+                stop: function(event, ui) {
+                    let elementId = $(this).attr("id");
+                    let position = ui.position;
+                    localStorage.setItem(elementId, JSON.stringify(position));
+                }
+            });
+
+            // Retrieve and set saved positions on load
+            $(".draggable").each(function() {
+                let elementId = $(this).attr("id");
+                let savedPosition = localStorage.getItem(elementId);
+
+                if (savedPosition) {
+                    let position = JSON.parse(savedPosition);
+                    $(this).css({ top: position.top, left: position.left });
+                }
+            });
+
+            let currentDate = new Date();
+
+            function updateClock() {
+                let now = new Date();
+                let hours = now.getHours();
+                let minutes = now.getMinutes();
+                let ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                let timeString = hours + ':' + minutes + ' ' + ampm;
+                $('#clock').text(timeString);
+
+                // Format the date
+                let options = { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' };
+                let dateString = now.toLocaleDateString('en-US', options);
+                $('#date').text(dateString);
+            }
+
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            function generateCalendar(date) {
+                const month = date.getMonth();
+                const year = date.getFullYear();
+                $('#monthYear').text(date.toLocaleString('default', { month: 'long' }) + ' ' + year);
+                $('.calendar-picker').find('div:not(.weekday)').remove();
+                let firstDay = new Date(year, month, 1).getDay();
+                let daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDay; i++) {
+                    $('.calendar-picker').append('<div class="day"></div>');
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    $('.calendar-picker').append('<div class="day">' + day + '</div>');
+                }
+            }
+
+            generateCalendar(currentDate);
+
+            $('#prevMonth').on('click', function () {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                generateCalendar(currentDate);
+            });
+
+            $('#nextMonth').on('click', function () {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                generateCalendar(currentDate);
+            });
+
+            // Task Input
+            $('#taskInput').on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let taskText = $(this).val().trim();
+                    if (taskText) {
+                        $('#taskList').append(`
+                            <li>
+                                <input type="checkbox" class="task-checkbox">
+                                <span class="task-content">${taskText}</span>
+                                <button class="delete-task">X</button>
+                            </li>
+                        `);
+                        $(this).val(''); // Clear the input
+                        saveTasks(); // Save tasks to local storage
+                    }
+                }
+            });
+
+            // Delete Task
+            $('#taskList').on('click', '.delete-task', function () {
+                $(this).parent().remove();
+                saveTasks(); // Save tasks to local storage
+            });
+
+            // Save tasks to local storage
+            function saveTasks() {
+                const tasks = [];
+                $('#taskList li').each(function () {
+                    const taskText = $(this).find('.task-content').text();
+                    const isChecked = $(this).find('.task-checkbox').is(':checked');
+                    tasks.push({ text: taskText, completed: isChecked });
+                });
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+
+            // Load tasks from local storage
+            function loadTasks() {
+                const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                tasks.forEach(task => {
+                    $('#taskList').append(`
+                        <li>
+                            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+                            <span class="task-content ${task.completed ? 'checked' : ''}">${task.text}</span>
+                            <button class="delete-task">X</button>
+                        </li>
+                    `);
+                });
+
+                // Attach event for checking tasks
+                attachTaskEvents();
+            }
+
+            // Attach event listeners for task checkbox changes
+            function attachTaskEvents() {
+                $('#taskList').on('change', '.task-checkbox', function () {
+                    const taskContent = $(this).closest('li').find('.task-content');
+                    taskContent.toggleClass('checked', this.checked);
+                    saveTasks(); // Save tasks after changing status
+                });
+            }
+
+            // Initial load
+            loadTasks();
+        });
+    </script>
+</body>
+</html>
